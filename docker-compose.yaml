@@ -5,9 +5,8 @@ services:
 
   # traefik container
   traefik:
-    image: traefik:v3.0.0-beta2 # still in beta, use v2.9.6 for stable version
-                                # please check version tag to use the most current version
-    restart: unless-stopped
+    image: traefik:v3.0
+    restart: unless-stopped # use always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro        # It's not recommended mounting the docker socket into a container -> see https://github.com/wollomatic/traefik2-hardened
       - ./config/traefik.yaml:/etc/traefik/traefik.yaml:ro  # static traefik configuration
@@ -36,23 +35,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-
-  # whoami example container
-  whoami:
-    image: traefik/whoami:latest
-    restart: unless-stopped
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.whoami.entrypoints=web-secure"
-      - "traefik.http.routers.whoami.rule=Host(`whoami.example.invalid`)" # change hostname!
-      - "traefik.http.routers.whoami.tls=true"
-      - "traefik.http.routers.whoami.tls.certresolver=tlschallenge"
-      - "traefik.http.routers.whoami.middlewares=secHeaders@file"
-      - "traefik.http.services.whoami.loadbalancer.server.port=80" # set port the container listenes to
-    networks:
-      - traefik-servicenet
-
-
 
 networks:
   traefik-servicenet:

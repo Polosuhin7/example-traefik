@@ -1,28 +1,19 @@
-# simple traefik v3.x deployment with docker compose example
-
-For a sample traefik v2.x deployment see branch 'traefik2'.
-
-This example runs traefik as root with the docker socket mounted into the container to keep this example simple.
-Doing this is not a good security practise. Be warned and know what you do!
-
-For an hardened traefik v2 example see [wollomatic/traefik2-hardened](https://github.com/wollomatic/traefik2-hardened).
-
-What to do before using this example:
-
+#  Развертывание приложений с traefik v3
+Что нужно сделать:
 * chmod 600 config/acme.json
-* docker-compose.yaml: change hostname 'foobar.example.invalid' to your real hostname
-* docker-compose.yaml: change basic auth password!! (see comments in file)
-* config/traefik.yaml: change email address 
-* open each file, check it by yourself and understand what it does
-* create a docker network named 'traefik-servicenet' (`docker network create traefik-servicenet`)
+* docker-compose.yaml: изменить 'foobar.example.invalid' на настоящий хост
+* example-app/docker-compose.yaml: изменить 'foobar.example.invalid' на настоящий хост
+* docker-compose.yaml: изменить пароль!! (см коммент)
+* config/traefik.yaml: изменить email
+* Создать  docker network 'traefik-servicenet' (`docker network create traefik-servicenet`)
 
-## migrating traefik v2 to v3
+# Установка docker и docker-compose в Ubuntu 22
+Запускаем скрипт 
+```sh
+sudo chmod +x ./docker-installer.sh && sh ./docker-installer.sh
+```
 
-see https://doc.traefik.io/traefik/v3.0/migration/v2-to-v3/
-
-Migrating vom traefik v2 to v3 is quite simple, yet there are some changes to be aware of:
-
-* Router configuration `Host(\`foo.example.invalid\`,\`bar.example.invalid\`)` is now `Host(\`foo.example.invalid\`) || Host(\`bar.example.invalid\`)`
-* Regexp syntax has changed. See https://doc.traefik.io/traefik/v3.0/migration/v2-to-v3/#matchers
-* Because content type auto detection is now disabled by default, you have to add the middleware ContentType to make the dashboard and other services work again.
-* Since http3 is now enabled by default, you must remove the `http3` entry from the experimental section of the traefik config file.
+# Запуск докер контейнера
+1. Добавляем службу при старте ```sudo systemctl enable docker```
+2. Указываем свойство ```restart: always```в docker-compose.yml 
+3. Старт ```docker compose up -d```
