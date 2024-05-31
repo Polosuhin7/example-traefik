@@ -1,0 +1,72 @@
+services:
+  # traefik container
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro # static traefik configuration
+      - ./config/dynamic.yml:/etc/traefik/dynamic.yml:ro # dynamic traefik configuration
+      - ./config/acme.json:/etc/traefik/acme.json # TLS certificate storage
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.invalid.example`)" # change hostname!
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.tls.certresolver=tlschallenge"
+      - "traefik.http.routers.traefik.entrypoints=web-secure"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
+      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+
+    networks:
+      - traefik-servicenet
+    ports:
+      - "80:80"
+      - "443:443"
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+
+      # Frontend
+      - "traefik.http.routers.portainer.entrypoints=web-secure"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.on-review.ru`)" # change hostname!
+      - "traefik.http.routers.portainer.tls=true"
+      - "traefik.http.routers.portainer.tls.certresolver=tlschallenge"
+      - "traefik.http.routers.portainer.middlewares=secHeaders@file"
+      - "traefik.http.routers.portainer.service=portainer"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000" # set port the container listenes to
+
+  #registry use same login and password like traefik dashboard
+  registry:
+    container_name: dockerhub
+    restart: unless-stopped
+    image: registry:2
+    networks:
+      - traefik-servicenet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.registry.entrypoints=web-secure"
+      - "traefik.http.routers.registry.rule=Host(`registry.invalid.example`)" # change hostname!
+      - "traefik.http.routers.registry.tls=true"
+      - "traefik.http.routers.registry.tls.certresolver=tlschallenge"
+      - "traefik.http.routers.registry.middlewares=secHeaders@file"
+      - "traefik.http.services.registry.loadbalancer.server.port=5000"
+      - "traefik.http.routers.traefik.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
+
+volumes:
+  portainer_data:
+
+networks:
+  traefik-servicenet:
+    external: true
+    name:
+      traefik-servicenet # create this network before running this deployment:
+      # docker network create traefik-servicene

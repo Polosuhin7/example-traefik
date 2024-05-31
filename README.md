@@ -1,19 +1,32 @@
-#  Развертывание приложений с traefik v3
-Что нужно сделать:
-* chmod 600 config/acme.json
-* docker-compose.yaml: изменить 'foobar.example.invalid' на настоящий хост
-* example-app/docker-compose.yaml: изменить 'foobar.example.invalid' на настоящий хост
-* docker-compose.yaml: изменить пароль!! (см коммент)
-* config/traefik.yaml: изменить email
-* Создать  docker network 'traefik-servicenet' (`docker network create traefik-servicenet`)
+# Настройка VPS
+Используемые приложение:
+* traefik
+* portainer
+* docker-registry
 
-# Установка docker и docker-compose в Ubuntu 22
+## Установка зависимостей (docker, ) в Ubuntu 22
 Запускаем скрипт 
 ```sh
-sudo chmod +x ./docker-installer.sh && sh ./docker-installer.sh
+sudo chmod +x ./installer.sh && sh ./installer.sh
 ```
 
-# Запуск докер контейнера
-1. Добавляем службу при старте ```sudo systemctl enable docker```
-2. Указываем свойство ```restart: always```в docker-compose.yml 
-3. Старт ```docker compose up -d```
+##   Настройка traefik
+Что нужно сделать:
+<!-- * Создать  docker network 'traefik-servicenet' (`docker network create traefik-servicenet`) -->
+<!-- * chmod 600 config/acme.json -->
+* docker-compose.yml: изменить 'foobar.example.invalid' на настоящий хост
+* docker-compose.yml: изменить пароль!! (см коммент)
+* config/traefik.yml: изменить email
+* config/dynamic.yaml: добавь пользователя
+
+## Добавление прокси для docker hub
+1. ```echo "{ "registry-mirrors" : [ "https:\/\/huecker.io" ] }" > /etc/docker/daemon.json```
+2. ```sudo systemctl restart docker```
+
+
+## Запуск
+1. Старт ```docker compose up -d```
+
+## Добавление приложений
+Что бы traefik увидел новое приложение нужно добавить секцию label в docker-compose.yml(см. пример в ./wp-example-docker-compose.yml)
+Добавлять приложение можно через portainer в разделе stacks

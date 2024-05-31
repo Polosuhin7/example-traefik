@@ -1,3 +1,16 @@
+# htpasswd
+apt-get install apache2-utils
+
+# nvm
+# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+
+# nvim
+# add-apt-repository ppa:neovim-ppa/unstable -y
+# apt update
+# apt install neovim
+# git clone https://github.com/NvChad/starter ~/.config/nvim
+
+#docker
 sudo apt update
 sudo apt install apt-transport-https ca-certificates curl software-properties-common
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
@@ -6,3 +19,7 @@ sudo apt install docker-ce
 mkdir -p ~/.docker/cli-plugins/
 curl -SL https://github.com/docker/compose/releases/download/v2.14.2/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
 chmod +x ~/.docker/cli-plugins/docker-compose
+docker network create traefik-servicenet
+chmod 600 traefik/config/acme.json
+sudo systemctl enable docker
+sudo systemctl start docker
