@@ -28,7 +28,9 @@ services:
     image: portainer/portainer-ce:latest
     container_name: portainer
     command: -H unix:///var/run/docker.sock
-    restart: always
+    restart: unless-stopped
+    networks:
+      - traefik-servicenet
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -59,7 +61,7 @@ services:
       - "traefik.http.routers.registry.tls.certresolver=tlschallenge"
       - "traefik.http.routers.registry.middlewares=secHeaders@file"
       - "traefik.http.services.registry.loadbalancer.server.port=5000"
-      - "traefik.http.routers.traefik.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
+      - "traefik.http.routers.registry.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
 
 volumes:
   portainer_data:

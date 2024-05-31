@@ -19,6 +19,6 @@ mkdir -p ~/.docker/cli-plugins/
 curl -SL https://github.com/docker/compose/releases/download/v2.14.2/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
 chmod +x ~/.docker/cli-plugins/docker-compose
 docker network create traefik-servicenet
-chmod 600 traefik/config/acme.json
+chmod 600 config/acme.json
 sudo systemctl enable docker
 sudo systemctl start docker
