@@ -44,9 +44,9 @@ services:
       - "traefik.http.routers.portainer.tls.certresolver=tlschallenge"
       - "traefik.http.routers.portainer.middlewares=secHeaders@file"
       - "traefik.http.routers.portainer.service=portainer"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000" # set port the container listenes to
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000" # set port the container listens to
 
-  #registry use same login and password like traefik dashboard
+  # Docker registry container
   registry:
     container_name: dockerhub
     restart: unless-stopped
@@ -63,6 +63,17 @@ services:
       - "traefik.http.services.registry.loadbalancer.server.port=5000"
       - "traefik.http.routers.registry.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
 
+  # Service for cleaning unused images
+  image-cleaner:
+    image: docker:latest
+    container_name: image-cleaner
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    entrypoint: /bin/sh -c "while true; do docker image prune -a -f; sleep 86400; done"
+    networks:
+      - traefik-servicenet
+
 volumes:
   portainer_data:
 
@@ -70,5 +81,4 @@ networks:
   traefik-servicenet:
     external: true
     name:
-      traefik-servicenet # create this network before running this deployment:
-      # docker network create traefik-servicene
+      traefik-servicenet
