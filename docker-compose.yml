@@ -1,129 +1,47 @@
+version: "3.8"
+
 services:
-  # traefik container
   traefik:
     image: traefik:v3.0
-    container_name: traefik
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro # static traefik configuration
-      - ./config/dynamic.yml:/etc/traefik/dynamic.yml:ro # dynamic traefik configuration
-      - ./config/acme.json:/certs/acme.json # TLS certificate storage
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.invalid.example`)" # change hostname!
-      - "traefik.http.routers.traefik.service=api@internal"
-      - "traefik.http.routers.traefik.tls.certresolver=tlschallenge"
-      - "traefik.http.routers.traefik.entrypoints=web-secure"
-      - "traefik.http.routers.traefik.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
-      - "traefik.http.services.traefik.loadbalancer.server.port=8080"
-
-    networks:
-      - traefik-servicenet
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesResolvers.letsencrypt.acme.httpChallenge=true"
+      - "--certificatesResolvers.letsencrypt.acme.httpChallenge.entryPoint=web"
+      - "--certificatesResolvers.letsencrypt.acme.email=admin@example.com"
+      - "--certificatesResolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+    networks:
+      - web
+    restart: unless-stopped
 
   portainer:
     image: portainer/portainer-ce:latest
-    container_name: portainer
     command: -H unix:///var/run/docker.sock
-    restart: unless-stopped
-    networks:
-      - traefik-servicenet
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.example.com`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
-    labels:
-      - "traefik.enable=true"
-
-      # Frontend
-      - "traefik.http.routers.portainer.entrypoints=web-secure"
-      - "traefik.http.routers.portainer.rule=Host(`portainer.on-review.ru`)" # change hostname!
-      - "traefik.http.routers.portainer.tls=true"
-      - "traefik.http.routers.portainer.tls.certresolver=tlschallenge"
-      - "traefik.http.routers.portainer.middlewares=secHeaders@file"
-      - "traefik.http.routers.portainer.service=portainer"
-      - "traefik.http.services.portainer.loadbalancer.server.port=9000" # set port the container listens to
-
-  # Service for cleaning unused images
-  image-cleaner:
-    tty: true
-    stdin_open: true
-    image: docker:latest
-    container_name: image-cleaner
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    entrypoint: /bin/sh -c "while true; \
-      do docker image prune -a -f; \
-      docker system prune -a -f; \
-      sleep 3600; done"
     networks:
-      - traefik-servicenet
-
-
-  # Docker registry container
-  # registry:
-  #   tty: true
-  #   stdin_open: true
-  #   restart: unless-stopped
-  #   image: registry:2
-  #   volumes:
-  #     - registry_data:/var/lib/registry 
-  #   environment:
-  #     REGISTRY_STORAGE_DELETE_ENABLED: "true"
-  #   networks:
-  #     - traefik-servicenet
-  #   labels:
-  #     - "traefik.enable=true"
-  #     - "traefik.http.routers.registry.entrypoints=web-secure"
-  #     - "traefik.http.routers.registry.rule=Host(`registry.invalid.example`)" # change hostname!
-  #     - "traefik.http.routers.registry.tls=true"
-  #     - "traefik.http.routers.registry.tls.certresolver=tlschallenge"
-  #     - "traefik.http.routers.registry.middlewares=secHeaders@file"
-  #     - "traefik.http.services.registry.loadbalancer.server.port=5000"
-  #     - "traefik.http.routers.registry.middlewares=traefik-auth@file, secHeaders@file, autodetectContenttype@file"
-
-  # cleanup-service:
-  #   tty: true
-  #   stdin_open: true
-  #   image: docker:latest
-  #   container_name: cleanup-service
-  #   entrypoint: /bin/sh -c "while true; \
-  #     do docker stop registry; \
-  #     docker rm -v registry; \
-  #     docker-compose up -d registry; \
-  #     sleep 3600; done" # Runs every 24 hours (86400 seconds)
-  #   restart: unless-stopped
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #     - /root/traefik/docker-compose.yml:/traefik/docker-compose.yml:ro
-  #   networks:
-  #     - traefik-servicenet
-  #   depends_on:
-  #     - registry
-
-  # registry-cleaner:
-  #   stdin_open: true
-  #   tty: true
-  #   image: registry:2
-  #   container_name: registry-cleaner
-  #   entrypoint: /bin/sh -c "while true; \
-  #    do bin/registry garbage-collect /etc/docker/registry/config.yml; \
-  #    sleep 800; done" # Запускает GC каждый день
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./config/registry-config.yml:/etc/docker/registry/config.yml:ro
-  #     - registry_data:/var/lib/registry  # Важно для доступа к данным registry
-  #   networks:
-  #     - traefik-servicenet
+      - web
+    restart: unless-stopped
 
 volumes:
   portainer_data:
-  # registry_data:
+
 networks:
-  traefik-servicenet:
+  web:
     external: true
-    name:
-      traefik-servicenet

@@ -1,23 +1,33 @@
-# nvm
-# curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+#!/bin/bash
 
-# nvim
-# add-apt-repository ppa:neovim-ppa/unstable -y
-# apt update
-# apt install neovim
-# git clone https://github.com/NvChad/starter ~/.config/nvim
+set -e
 
-#docker
+echo "🔄 Updating system..."
+sudo apt update && sudo apt upgrade -y
+
+echo "📦 Installing required packages..."
+sudo apt install -y ca-certificates curl gnupg lsb-release git apache2-utils
+
+echo "🔑 Adding Docker GPG key..."
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+  | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+echo "📦 Adding Docker repository..."
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+echo "🐳 Installing Docker Engine and Compose v2..."
 sudo apt update
-sudo apt install apt-transport-https ca-certificates curl software-properties-common apache2-utils
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-sudo apt update
-sudo apt install docker-ce -y
-mkdir -p ~/.docker/cli-plugins/
-curl -SL https://github.com/docker/compose/releases/download/v2.14.2/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
-chmod +x ~/.docker/cli-plugins/docker-compose
-docker network create traefik-servicenet
-chmod 600 config/acme.json
-sudo systemctl enable docker
-sudo systemctl start docker
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+echo "👤 Adding current user ($USER) to docker group..."
+sudo usermod -aG docker $USER
+
+echo "🌐 Creating default Docker network 'web' (if not exists)..."
+docker network inspect web >/dev/null 2>&1 || docker network create web
+
+echo "✅ Done! Please logout and login again, or reboot your server."
