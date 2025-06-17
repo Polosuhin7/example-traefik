@@ -6,8 +6,8 @@
 ## Установка зависимостей (docker) в Ubuntu 22
 Запускаем скрипт
 ```sh
-sudo chmod +x ./installer.sh && sh ./installer.sh
-sudo chmod +x ./init.sh && sh ./init.sh
+sudo chmod +x ./installer.sh && bash ./installer.sh
+sudo chmod +x ./init.sh && bash ./init.sh
 ```
 
 
