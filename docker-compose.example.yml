@@ -8,7 +8,7 @@ services:
       - "traefik.http.routers.test-nginx.rule=Host(`example.com`)"
       - "traefik.http.routers.test-nginx.entrypoints=websecure"
       - "traefik.http.routers.test-nginx.tls.certresolver=letsencrypt"
-      - "traefik.http.services.test-nginx.loadbalancer.server.port=80"
+      - "traefik.http.services.test-nginx.loadbalancer.server.port=80" # приложение должно слушать 80 порт!
     networks:
       - web
     restart: unless-stopped

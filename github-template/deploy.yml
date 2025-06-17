@@ -1,0 +1,58 @@
+name: Deploy to VPS with docker-compose
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DEPLOY_PATH: /root/my-test-app
+  IMAGE_NAME: test-app-image
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 📝 Create .env file
+        run: |
+          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}" >> .env
+          echo "TEST_VALUE=${{ vars.TEST_VALUE }}" >> .env
+
+      - name: 📦 Save image as tar
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:latest .
+          docker save ${{ env.IMAGE_NAME }}:latest -o ${{ env.IMAGE_NAME }}.tar
+          chmod +r ${{ env.IMAGE_NAME }}.tar
+
+      - name: 🔐 Copy image to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_SSH_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: ${{ env.IMAGE_NAME }}.tar,.env,docker-compose.yml
+          target: ${{ env.DEPLOY_PATH }}
+
+      - name: 🚀 SSH into VPS, load image, and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_SSH_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd ${{ env.DEPLOY_PATH }}
+            echo "📦 Loading Docker image..."
+            docker load < ${{ env.IMAGE_NAME }}.tar
+
+            echo "🧹 Removing image archive..."
+            rm -f ${{ env.IMAGE_NAME }}.tar
+
+            echo "🔄 Starting docker-compose..."
+            docker compose --env-file .env up --build -d
+
+            echo "🧼 Removing dangling images..."
+            docker image prune -f || true
